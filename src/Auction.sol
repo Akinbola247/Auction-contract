@@ -33,7 +33,7 @@ contract Auction is Ownable{
     
 constructor() public payable{}
     function CreateAuction (address contractAddress, uint tokenID, uint price) public payable {
-       require(msg.value == 0.0065 ether, "listing Price is 0.00065 ether");
+       require(msg.value == 0.0065 ether, "listing Price is 0.0065 ether");
         auctionID.increment();
         uint256 itemIds = auctionID.current();
        AuctionDetails storage _b = OwnerAuctionItem[msg.sender];
