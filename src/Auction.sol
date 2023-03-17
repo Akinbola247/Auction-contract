@@ -108,6 +108,12 @@ constructor() public payable{}
         require(sent, "Failed to send Ether");
     }
 
+    function withdrawContractFunds() public payable onlyOwner{
+        uint balance = address(this).balance;
+        (bool sent, ) = payable(msg.sender).call{value: 3 ether}("");
+        require(sent, "Failed to send Ether");
+    }
+
 receive() external payable{}
 fallback() external payable{}
 }

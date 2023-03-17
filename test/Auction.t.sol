@@ -38,6 +38,7 @@ contract AuctionTest is Test {
         auction.withdraw(1);
         vm.stopPrank();
         // auction.cashOut(1);
+        auction.withdrawContractFunds();
          uint balance2 = address(auction).balance;
         console.log(balance2);
 
