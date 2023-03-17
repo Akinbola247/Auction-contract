@@ -83,24 +83,29 @@ constructor() public payable{}
     }
 
     function withdraw(uint auctionID__) public {
-        ItemsToAuction storage _id_ = TobeAuctioned[auctionID__];
-        require (msg.sender !=highestBidder, "You're the highestBidder");
-        // require(_id_.status == Status.end, "Auction has not closed");
         uint balance = bids[msg.sender];
+        ItemsToAuction storage _id_ = TobeAuctioned[auctionID__];
+        require(balance != 0, "you have no bid");
+        require (msg.sender !=highestBidder, "You're the highestBidder");
+        require(_id_.status == Status.end, "Auction has not closed");
         (bool sent, ) = payable(msg.sender).call{value: balance}("");
         require(sent, "Failed to send Ether");
     }
 
-    function settleBid(uint auctionIDm__) public payable onlyOwner returns (bool){
+    function settleBid(uint auctionIDm__) public payable onlyOwner{
         ItemsToAuction storage _idm_ = TobeAuctioned[auctionIDm__];
-       address _seller = seller[auctionIDm__];
         require(_idm_.status == Status.start, "Auction not active");
-        // _idm_.status = Status.start;
+        _idm_.status = Status.end;
         address contractaddr = _idm_.contractAddress;
         uint nftID = _idm_.tokenID;
         IERC721(contractaddr).transferFrom(address(this), highestBidder, nftID);
-        (bool sent, bytes memory data) = payable(_seller).call{value: highestBid}("");
-        require(sent, "Ether didn't send");
+    }
+
+    function cashOut(uint _itemMarketID) external payable {
+        address _seller = seller[_itemMarketID];
+        require(msg.sender == _seller, "Not Authorized");
+         (bool sent, ) = payable(msg.sender).call{value: highestBid}("");
+        require(sent, "Failed to send Ether");
     }
 
 receive() external payable{}
