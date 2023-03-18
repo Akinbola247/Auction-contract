@@ -20,18 +20,20 @@ contract Auction is Ownable{
         uint tokenID;
         Status status;
         uint price;
+        address payable highestBidder;
+        uint highestBid;
     }
     ItemsToAuction itemsToAuction;
     mapping(uint => ItemsToAuction) TobeAuctioned;
     AuctionDetails auctionDetails;
     mapping (address => AuctionDetails) OwnerAuctionItem;
-    uint private highestBid;
-    address payable private highestBidder;
-    mapping (address => uint)bids;
+    
+    
+    mapping (address => mapping(uint => uint))bids;
     mapping (uint => address) seller;
     
     
-constructor() public payable{}
+constructor() payable{}
     function CreateAuction (address contractAddress, uint tokenID, uint price) public payable {
        require(msg.value == 0.0065 ether, "listing Price is 0.0065 ether");
         auctionID.increment();
@@ -65,28 +67,29 @@ constructor() public payable{}
     }
     function bid(uint auctionID_) public payable{
         ItemsToAuction storage id_ = TobeAuctioned[auctionID_];
-        uint bidderStatus = bids[msg.sender];
+        uint __highestbid = id_.highestBid;
+        uint bidderStatus = bids[msg.sender][auctionID_];
         require(id_.status == Status.start, "Auction is not open");
         require(msg.value >= id_.price, "price below auction");
         require(msg.value != 0, "cannot bid 0");
-        require(msg.value > highestBid, "highestBidder exists");
         require(bidderStatus == 0, "Cannot bid twice");
-        if(highestBid !=0 && msg.value > highestBid){
-            bids[msg.sender] += msg.value;
-            highestBid = msg.value;
-            highestBidder = payable(msg.sender);
+        if(__highestbid !=0 && msg.value > __highestbid){
+            bids[msg.sender][auctionID_] += msg.value;
+            id_.highestBid = msg.value;
+            id_.highestBidder = payable(msg.sender);    
         }else {
-            bids[msg.sender] += msg.value;
-            highestBid = msg.value;
-            highestBidder = payable(msg.sender);        
+            bids[msg.sender][auctionID_] += msg.value;
+            id_.highestBid = msg.value;
+            id_.highestBidder = payable(msg.sender);        
          }  
     }
 
     function withdraw(uint auctionID__) public {
-        uint balance = bids[msg.sender];
+        uint balance = bids[msg.sender][auctionID__];
         ItemsToAuction storage _id_ = TobeAuctioned[auctionID__];
+        address _highestBidder = _id_.highestBidder;
         require(balance != 0, "you have no bid");
-        require (msg.sender !=highestBidder, "You're the highestBidder");
+        require (msg.sender !=_highestBidder, "You're the highestBidder");
         require(_id_.status == Status.end, "Auction has not closed");
         (bool sent, ) = payable(msg.sender).call{value: balance}("");
         require(sent, "Failed to send Ether");
@@ -94,17 +97,21 @@ constructor() public payable{}
 
     function settleBid(uint auctionIDm__) public payable onlyOwner{
         ItemsToAuction storage _idm_ = TobeAuctioned[auctionIDm__];
+        address _highestBidder_ = _idm_.highestBidder;
         require(_idm_.status == Status.start, "Auction not active");
         _idm_.status = Status.end;
         address contractaddr = _idm_.contractAddress;
         uint nftID = _idm_.tokenID;
-        IERC721(contractaddr).transferFrom(address(this), highestBidder, nftID);
+        IERC721(contractaddr).transferFrom(address(this), _highestBidder_, nftID);
     }
 
-    function cashOut(uint _itemMarketID) external payable {
-        address _seller = seller[_itemMarketID];
+    function cashOut(uint _itemMarketID) public  {
+        ItemsToAuction storage _idm_ = TobeAuctioned[_itemMarketID];
+        uint balance = _idm_.highestBid;
+        require(_idm_.status == Status.end, "Auction still active");
+        address _seller = getSeller(_itemMarketID);
         require(msg.sender == _seller, "Not Authorized");
-         (bool sent, ) = payable(msg.sender).call{value: highestBid}("");
+         (bool sent, ) = payable(msg.sender).call{value: balance}("");
         require(sent, "Failed to send Ether");
     }
 
@@ -119,7 +126,3 @@ fallback() external payable{}
 }
 
 
-//list NFT for auction
-//buyers should be able to bid 
-// Auction owner should start auction
-// At auction end , NFT should transfer to highest bidder and ether should be sent to owner
