@@ -10,10 +10,13 @@ contract AuctionTest is Test {
     NFT public kzn;
 
     function setUp() public {
+        vm.startPrank(0xBB9F947cB5b21292DE59EFB0b1e158e90859dddb);
+        vm.deal(0xBB9F947cB5b21292DE59EFB0b1e158e90859dddb, 5 ether);
         auction = new Auction();
         kzn = new NFT(address(auction));
       kzn.safeMint("https://ipfs.filebase.io/ipfs/QmYqEcCNJiP7pP2nzSsvyv7Ji1tNpv6omWMJ4Nph22dmfn");
-      auction.CreateAuction{value: 0.0065 ether}(address(kzn), 0, 1 ether);   
+      auction.CreateAuction{value: 0.0065 ether}(address(kzn), 0, 1 ether);  
+       vm.stopPrank();
     }
 
     function testsafeMint() public view {
@@ -21,7 +24,9 @@ contract AuctionTest is Test {
     }
 
     function testbid() public payable {
+         vm.startPrank(0xBB9F947cB5b21292DE59EFB0b1e158e90859dddb);
         auction.startBidding(1);
+        vm.stopPrank();
         vm.startPrank(address(0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC));
         vm.deal(address(0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC), 5 ether);  
         auction.bid{value: 2 ether}(1);
@@ -33,14 +38,18 @@ contract AuctionTest is Test {
         auction.getSeller(1);
         uint balance = address(auction).balance;
         console.log(balance);
+        vm.startPrank(0xBB9F947cB5b21292DE59EFB0b1e158e90859dddb);
         auction.settleBid(1);
-        vm.startPrank(address(0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC));
-        auction.withdraw(1);
         vm.stopPrank();
-        // auction.cashOut(1);
-        // auction.withdrawContractFunds();
+        vm.startPrank(address(0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC));
+        auction.withdraw(1);       
+        vm.stopPrank();
+        vm.startPrank(0xBB9F947cB5b21292DE59EFB0b1e158e90859dddb);
+        auction.cashOut(1);
+        auction.withdrawContractFunds();
          uint balance2 = address(auction).balance;
         console.log(balance2);
+        vm.stopPrank();
 
     }
 
